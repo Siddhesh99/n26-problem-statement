@@ -9,6 +9,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import java.util.DoubleSummaryStatistics;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
@@ -54,5 +56,30 @@ public class StatisticsServiceTest {
         assertThat(statisticSummaryThree.getAvg(), is(150.0));
         assertThat(statisticSummaryThree.getMax(), is(300.0));
         assertThat(statisticSummaryThree.getMin(), is(50.0));
+    }
+
+    @Test
+    public void shouldReturnUpdatedStatisticsSummaryIfOlderStatisticsFoundToClear() {
+        when(mockTimeUtils.nowInMilliSeconds()).thenReturn(62000L);
+        when(mockTimeUtils.nowInSeconds()).thenReturn(62L);
+        when(mockTimeUtils.convertToSeconds(2000L)).thenReturn(2L);
+        when(mockTimeUtils.convertToSeconds(61000L)).thenReturn(61L);
+        when(mockTimeUtils.convertToSeconds(62000L)).thenReturn(62L);
+
+        Transaction olderTransaction = new Transaction(500.0, 2000L);
+        Transaction recentTransactionOne = new Transaction(200.0, 61000L);
+        Transaction recentTransactionTwo = new Transaction(300.0, 62000L);
+
+        statisticsService.collect(olderTransaction);
+        statisticsService.collect(recentTransactionOne);
+        Statistics originalStatistics = statisticsService.collect(recentTransactionTwo);
+
+        DoubleSummaryStatistics updatedStatistics = statisticsService.clearOlderStatisticsEverySecond();
+
+        assertThat(originalStatistics.getCount(), is(3L));
+        assertThat(updatedStatistics.getCount(), is(2L));
+
+        assertThat(originalStatistics.getMax(), is(500.0));
+        assertThat(updatedStatistics.getMax(), is(300.0));
     }
 }
