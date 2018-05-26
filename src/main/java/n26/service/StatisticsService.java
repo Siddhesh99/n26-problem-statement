@@ -24,6 +24,12 @@ public class StatisticsService {
         statisticsBuffer = new ConcurrentHashMap<>();
     }
 
+    public Statistics getStatistics() {
+        if (statisticsBuffer.size() == 0)
+            return new Statistics(0.0, 0.0, 0.0, 0.0, 0L);
+        return new Statistics(statisticsResult);
+    }
+
     public Statistics collect(final Transaction transaction) {
         long transactionTimeStampInSeconds = timeUtils.convertToSeconds(transaction.getTimestamp());
         if (statisticsBuffer.containsKey(transactionTimeStampInSeconds)) {

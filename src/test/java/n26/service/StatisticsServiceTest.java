@@ -82,4 +82,35 @@ public class StatisticsServiceTest {
         assertThat(originalStatistics.getMax(), is(500.0));
         assertThat(updatedStatistics.getMax(), is(300.0));
     }
+
+    @Test
+    public void shouldReturnDefaultStatisticsIfNothingIsThereInTheBuffer() {
+        Statistics defaultSummary = statisticsService.getStatistics();
+
+        assertThat(defaultSummary.getCount(), is(0L));
+        assertThat(defaultSummary.getSum(), is(0.0));
+        assertThat(defaultSummary.getAvg(), is(0.0));
+        assertThat(defaultSummary.getMax(), is(0.0));
+        assertThat(defaultSummary.getMin(), is(0.0));
+    }
+
+    @Test
+    public void shouldReturnStatisticsAsPerContentsOfBuffer() {
+        when(mockTimeUtils.nowInMilliSeconds()).thenReturn(100000L);
+
+        Transaction recentTransactionOne = new Transaction(200.0, 110000L);
+        Transaction recentTransactionTwo = new Transaction(400.0, 120000L);
+
+        statisticsService.collect(recentTransactionOne);
+        statisticsService.collect(recentTransactionTwo);
+
+        Statistics statisticSummary = statisticsService.getStatistics();
+
+        assertThat(statisticSummary.getCount(), is(2L));
+        assertThat(statisticSummary.getSum(), is(600.0));
+        assertThat(statisticSummary.getAvg(), is(300.0));
+        assertThat(statisticSummary.getMax(), is(400.0));
+        assertThat(statisticSummary.getMin(), is(200.0));
+    }
+
 }
