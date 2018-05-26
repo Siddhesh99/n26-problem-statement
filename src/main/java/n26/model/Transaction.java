@@ -1,11 +1,13 @@
 package n26.model;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import n26.util.TimeUtils;
 
 @Getter
 @AllArgsConstructor
+@EqualsAndHashCode
 public class Transaction {
     private static final int MAX_TIME_DIFFERENCE_ALLOWED = 60;
 
