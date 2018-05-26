@@ -1,10 +1,10 @@
 package n26.service;
 
-import javaslang.collection.HashMap;
 import lombok.extern.slf4j.Slf4j;
+import n26.helper.TimeHelpers;
 import n26.model.Statistics;
 import n26.model.Transaction;
-import n26.util.TimeUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -14,33 +14,45 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @Slf4j
 public class StatisticsService {
-    private ConcurrentHashMap<Long, DoubleSummaryStatistics> statisticsBuffer;
+    private ConcurrentHashMap<Long, DoubleSummaryStatistics> perSecondBuckets;
     private DoubleSummaryStatistics statisticsResult;
-    private final TimeUtils timeUtils;
+    private final TimeHelpers timeHelpers;
 
-    StatisticsService(TimeUtils timeUtils) {
-        this.timeUtils = timeUtils;
+    StatisticsService(TimeHelpers timeHelpers) {
+        this.timeHelpers = timeHelpers;
         statisticsResult = new DoubleSummaryStatistics();
-        statisticsBuffer = new ConcurrentHashMap<>();
+        perSecondBuckets = new ConcurrentHashMap<>();
     }
 
+    /**
+     * @return statistics
+     * If empty return statistics with default values
+     * otherwise return already calculated statistics in O(1)
+     */
     public Statistics getStatistics() {
-        if (statisticsBuffer.size() == 0)
+        if (perSecondBuckets.size() == 0)
             return new Statistics(0.0, 0.0, 0.0, 0.0, 0L);
         return new Statistics(statisticsResult);
     }
 
+    /**
+     * @param transaction
+     * @return statistics
+     * Add transaction in perSecondBuckets hash and update the final statistics result
+     * This could have been done async but in this way can use the result of this method
+     * to convey information to user in case of failures
+     */
     public Statistics collect(final Transaction transaction) {
-        long transactionTimeStampInSeconds = timeUtils.convertToSeconds(transaction.getTimestamp());
-        if (statisticsBuffer.containsKey(transactionTimeStampInSeconds)) {
+        long transactionTimeStampInSeconds = timeHelpers.convertToSeconds(transaction.getTimestamp());
+        if (perSecondBuckets.containsKey(transactionTimeStampInSeconds)) {
             log.info("Updating existing statistics for the second : {}", transactionTimeStampInSeconds);
-            DoubleSummaryStatistics existingStatisticsForSecond = statisticsBuffer.get(transactionTimeStampInSeconds);
+            DoubleSummaryStatistics existingStatisticsForSecond = perSecondBuckets.get(transactionTimeStampInSeconds);
             existingStatisticsForSecond.accept(transaction.getAmount());
         } else {
             log.info("Creating new statistics for the second : {}", transactionTimeStampInSeconds);
             DoubleSummaryStatistics newStatisticsForSecond = new DoubleSummaryStatistics();
             newStatisticsForSecond.accept(transaction.getAmount());
-            statisticsBuffer.put(transactionTimeStampInSeconds, newStatisticsForSecond);
+            perSecondBuckets.put(transactionTimeStampInSeconds, newStatisticsForSecond);
         }
 
         log.info("Updating statistics result. Current value : {}", new Statistics(statisticsResult));
@@ -54,20 +66,24 @@ public class StatisticsService {
         return updatedStatistics;
     }
 
-
-    @Scheduled(fixedDelay = TimeUtils.MILLISECONDS_PER_SECOND, initialDelay = TimeUtils.MILLISECONDS_PER_SECOND)
+    /**
+     * @return statistics result
+     * Clear transaction which is older than 60 seconds
+     */
+    @Async
+    @Scheduled(fixedDelay = TimeHelpers.MILLISECONDS_IN_A_SECOND, initialDelay = TimeHelpers.MILLISECONDS_IN_A_SECOND)
     public DoubleSummaryStatistics clearOlderStatisticsEverySecond() {
 
-        long nowInSeconds = timeUtils.nowInSeconds();
+        long nowInSeconds = timeHelpers.currentTimeInSeconds();
         log.info("Running job to clear older statistics. Current time: {}", nowInSeconds);
         long oldestTimeInSeconds = nowInSeconds - 60;
 
-        if (statisticsBuffer.containsKey(oldestTimeInSeconds)) {
+        if (perSecondBuckets.containsKey(oldestTimeInSeconds)) {
             log.info("Older statistics found for time: {}", oldestTimeInSeconds);
-            statisticsBuffer.remove(oldestTimeInSeconds);
+            perSecondBuckets.remove(oldestTimeInSeconds);
 
             synchronized (this) {
-                statisticsResult = reCalculateStatisticsResults();
+                statisticsResult = calculateStatisticsResult();
             }
 
             log.info("Updated total statistics: {}", new Statistics(statisticsResult));
@@ -77,12 +93,17 @@ public class StatisticsService {
         return statisticsResult;
     }
 
-    private DoubleSummaryStatistics reCalculateStatisticsResults() {
+    /**
+     * @return DoubleSummaryStatistics final result
+     * Recalculate the final result
+     */
+    private DoubleSummaryStatistics calculateStatisticsResult() {
         log.info("Recalculating total statistics Summary");
-        return HashMap.ofAll(statisticsBuffer)
-                .foldLeft(new DoubleSummaryStatistics(), (acc, tuple2) -> {
-                    acc.combine(tuple2._2());
-                    return acc;
-                });
+        DoubleSummaryStatistics result = new DoubleSummaryStatistics();
+        for (Long second : perSecondBuckets.keySet()) {
+            DoubleSummaryStatistics statistics = perSecondBuckets.get(second);
+            result.combine(statistics);
+        }
+        return result;
     }
 }

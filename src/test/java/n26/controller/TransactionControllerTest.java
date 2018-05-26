@@ -1,9 +1,9 @@
 package n26.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import n26.helper.TimeHelpers;
 import n26.model.Transaction;
 import n26.service.StatisticsService;
-import n26.util.TimeUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,7 +25,7 @@ public class TransactionControllerTest {
     private MockMvc mockMvc;
 
     @Mock
-    private TimeUtils timeUtils;
+    private TimeHelpers timeHelpers;
 
     @Mock
     private StatisticsService statisticsService;
@@ -43,7 +43,7 @@ public class TransactionControllerTest {
 
     @Test
     public void shouldReturnCreatedResponseForTransactionWithTimestampEarlierThan60SecondsFromNow() throws Exception {
-        when(timeUtils.nowInMilliSeconds()).thenReturn(120000L);
+        when(timeHelpers.currentTime()).thenReturn(120000L);
         Transaction transaction = new Transaction(13.2, 110000L);
 
         mockMvc.perform(
@@ -57,7 +57,7 @@ public class TransactionControllerTest {
 
     @Test
     public void shouldReturnNoContentResponseForTimestampOlderThan60SecondsFromNow() throws Exception {
-        when(timeUtils.nowInMilliSeconds()).thenReturn(200000L);
+        when(timeHelpers.currentTime()).thenReturn(200000L);
         Transaction invalidTransaction = new Transaction(13.2, 110000L);
 
         mockMvc.perform(

@@ -14,6 +14,11 @@ public class StatisticsController {
         this.statisticsService = statisticsService;
     }
 
+    /**
+     * @return statistics
+     * Returns already calculated statistics in O(1)
+     */
+
     @RequestMapping(value = "/statistics", method = RequestMethod.GET)
     public Statistics get() {
         return statisticsService.getStatistics();

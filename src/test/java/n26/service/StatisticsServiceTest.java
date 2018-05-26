@@ -1,8 +1,8 @@
 package n26.service;
 
+import n26.helper.TimeHelpers;
 import n26.model.Statistics;
 import n26.model.Transaction;
-import n26.util.TimeUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -20,14 +20,14 @@ import static org.mockito.Mockito.when;
 public class StatisticsServiceTest {
 
     @Mock
-    private TimeUtils mockTimeUtils;
+    private TimeHelpers mockTimeHelpers;
 
     @InjectMocks
     private StatisticsService statisticsService;
 
     @Test
     public void shouldCollectGivenTransactionAndReturnStatistics() {
-        when(mockTimeUtils.nowInMilliSeconds()).thenReturn(110000L);
+        when(mockTimeHelpers.currentTime()).thenReturn(110000L);
 
         Transaction transaction = new Transaction(13.3, 100000L);
         Statistics statistics = statisticsService.collect(transaction);
@@ -41,7 +41,7 @@ public class StatisticsServiceTest {
 
     @Test
     public void shouldReturnUpdatedStatisticsForGivenTransactionWithExistingTimeStamp() {
-        when(mockTimeUtils.nowInMilliSeconds()).thenReturn(110000L);
+        when(mockTimeHelpers.currentTime()).thenReturn(110000L);
 
         Transaction transactionOne = new Transaction(50.0, 100000L);
         Transaction transactionTwo = new Transaction(100.0, 100000L);
@@ -60,11 +60,11 @@ public class StatisticsServiceTest {
 
     @Test
     public void shouldReturnUpdatedStatisticsSummaryIfOlderStatisticsFoundToClear() {
-        when(mockTimeUtils.nowInMilliSeconds()).thenReturn(62000L);
-        when(mockTimeUtils.nowInSeconds()).thenReturn(62L);
-        when(mockTimeUtils.convertToSeconds(2000L)).thenReturn(2L);
-        when(mockTimeUtils.convertToSeconds(61000L)).thenReturn(61L);
-        when(mockTimeUtils.convertToSeconds(62000L)).thenReturn(62L);
+        when(mockTimeHelpers.currentTime()).thenReturn(62000L);
+        when(mockTimeHelpers.currentTimeInSeconds()).thenReturn(62L);
+        when(mockTimeHelpers.convertToSeconds(2000L)).thenReturn(2L);
+        when(mockTimeHelpers.convertToSeconds(61000L)).thenReturn(61L);
+        when(mockTimeHelpers.convertToSeconds(62000L)).thenReturn(62L);
 
         Transaction olderTransaction = new Transaction(500.0, 2000L);
         Transaction recentTransactionOne = new Transaction(200.0, 61000L);
@@ -96,7 +96,7 @@ public class StatisticsServiceTest {
 
     @Test
     public void shouldReturnStatisticsAsPerContentsOfBuffer() {
-        when(mockTimeUtils.nowInMilliSeconds()).thenReturn(100000L);
+        when(mockTimeHelpers.currentTime()).thenReturn(100000L);
 
         Transaction recentTransactionOne = new Transaction(200.0, 110000L);
         Transaction recentTransactionTwo = new Transaction(400.0, 120000L);

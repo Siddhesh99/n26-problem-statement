@@ -18,12 +18,12 @@ public class Statistics {
     private double min;
     private long count;
 
-    public Statistics(DoubleSummaryStatistics totalStatistics) {
-        this.sum = totalStatistics.getSum();
-        this.avg = totalStatistics.getAverage();
-        this.max = totalStatistics.getMax();
-        this.min = totalStatistics.getMin();
-        this.count = totalStatistics.getCount();
+    public Statistics(DoubleSummaryStatistics resultStatistics) {
+        this.sum = resultStatistics.getSum();
+        this.avg = resultStatistics.getAverage();
+        this.max = resultStatistics.getMax();
+        this.min = resultStatistics.getMin();
+        this.count = resultStatistics.getCount();
     }
 
 }

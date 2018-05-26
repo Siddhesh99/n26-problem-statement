@@ -11,7 +11,7 @@ public class TransactionTest {
     public void shouldReturnTrueWhenTransactionIsFromLastSixtySeconds() {
         Transaction transaction = new Transaction(12.3, 90000L);
 
-        boolean isValid = transaction.isTimeStampFromLastSixtySeconds(95000L);
+        boolean isValid = transaction.isTimeStampValid(95000L);
 
         assertTrue(isValid);
     }
@@ -20,7 +20,7 @@ public class TransactionTest {
     public void shouldReturnFalseWhenTransactionIsOlderThanSixtySeconds() {
         Transaction transaction = new Transaction(12.3, 10000L);
 
-        boolean isValid = transaction.isTimeStampFromLastSixtySeconds(80000L);
+        boolean isValid = transaction.isTimeStampValid(80000L);
 
         assertFalse(isValid);
 
@@ -30,7 +30,7 @@ public class TransactionTest {
     public void shouldReturnFalseWhenTransactionTimestampIsInFuture() {
         Transaction transaction = new Transaction(12.3, 90000L);
 
-        boolean isValid = transaction.isTimeStampFromLastSixtySeconds(80000L);
+        boolean isValid = transaction.isTimeStampValid(80000L);
 
         assertFalse(isValid);
     }
